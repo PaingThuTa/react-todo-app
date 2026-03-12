@@ -8,12 +8,6 @@ pipeline {
     }
 
     stages {
-        stage('Build') {
-            steps {
-                sh 'npm install'
-            }
-        }
-
         stage('Containerize') {
             steps {
                 sh "docker build -t ${DOCKER_HUB_USER}/${IMAGE_NAME}:latest ."
