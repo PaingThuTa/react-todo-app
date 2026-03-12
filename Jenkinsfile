@@ -1,14 +1,10 @@
 pipeline {
-    agent {
-        docker {
-            // image 'node:lts-buster-slim'
-            image 'mrts/docker-python-nodejs-google-chrome'            
-            args '-p 3000:3000'
-        }
-    }
+    agent any
 
     environment {
-        CI = 'true'
+        DOCKER_HUB_USER = 'paingthuta'
+        IMAGE_NAME = 'todo-app'
+        DOCKER_HUB_CREDS = 'docker-hub-credentials'
     }
 
     stages {
@@ -17,16 +13,30 @@ pipeline {
                 sh 'npm install'
             }
         }
-        stage('Test') {
+
+        stage('Containerize') {
             steps {
-                // start the server
-                sh 'npm run test'
+                sh "docker build -t ${DOCKER_HUB_USER}/${IMAGE_NAME}:latest ."
             }
         }
-        stage('Deploy') {
+
+        stage('Push') {
             steps {
-                echo 'Deploying....'
+                withCredentials([usernamePassword(
+                    credentialsId: "${DOCKER_HUB_CREDS}",
+                    passwordVariable: 'DOCKER_PASS',
+                    usernameVariable: 'DOCKER_USER'
+                )]) {
+                    sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
+                    sh "docker push ${DOCKER_HUB_USER}/${IMAGE_NAME}:latest"
+                }
             }
+        }
+    }
+
+    post {
+        always {
+            sh "docker rmi ${DOCKER_HUB_USER}/${IMAGE_NAME}:latest || true"
         }
     }
 }
